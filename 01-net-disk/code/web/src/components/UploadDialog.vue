@@ -27,26 +27,26 @@
 
       <!-- 任务列表 -->
       <div v-if="taskList.length > 0" class="task-list">
-        <div v-for="task in taskList" :key="task.id" class="task-item">
+        <div v-for="item in taskList" :key="item.id" class="task-item">
           <div class="task-info">
-            <span class="task-name">{{ task.filename }}</span>
-            <span class="task-size">{{ formatSize(task.totalSize) }}</span>
+            <span class="task-name">{{ item.filename }}</span>
+            <span class="task-size">{{ formatSize(item.totalSize) }}</span>
           </div>
           <a-progress
-            :percent="task.progress"
-            :status="task.status === 'failed' ? 'exception' : task.status === 'done' ? 'success' : 'active'"
+            :percent="item.progress"
+            :status="item.status === 'failed' ? 'exception' : item.status === 'done' ? 'success' : 'active'"
             size="small"
           />
           <div class="task-meta">
-            <span v-if="task.status === 'uploading'" class="task-speed">{{ formatSpeed(task.speed) }}</span>
+            <span v-if="item.status === 'uploading'" class="task-speed">{{ formatSpeed(item.speed) }}</span>
             <span class="task-status">
-              <a-tag v-if="task.status === 'preparing'" color="processing">准备中</a-tag>
-              <a-tag v-else-if="task.status === 'uploading'" color="processing">上传中</a-tag>
-              <a-tag v-else-if="task.status === 'merging'" color="warning">合并中</a-tag>
-              <a-tag v-else-if="task.status === 'done'" color="success">完成</a-tag>
-              <a-tag v-else-if="task.status === 'failed'" color="error">失败</a-tag>
+              <a-tag v-if="item.status === 'preparing'" color="processing">准备中</a-tag>
+              <a-tag v-else-if="item.status === 'uploading'" color="processing">上传中</a-tag>
+              <a-tag v-else-if="item.status === 'merging'" color="warning">合并中</a-tag>
+              <a-tag v-else-if="item.status === 'done'" color="success">完成</a-tag>
+              <a-tag v-else-if="item.status === 'failed'" color="error">失败</a-tag>
             </span>
-            <span v-if="task.error" class="task-error">{{ task.error }}</span>
+            <span v-if="item.error" class="task-error">{{ item.error }}</span>
           </div>
         </div>
       </div>
@@ -55,7 +55,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, computed } from 'vue';
 import { UploadOutlined, InboxOutlined } from '@ant-design/icons-vue';
 import { useChunkedUpload } from '../utils/chunkedUpload.js';
 
@@ -64,36 +64,21 @@ const props = defineProps({
 });
 const emit = defineEmits(['uploaded']);
 
-const { uploadFile, formatSize, formatSpeed } = useChunkedUpload();
+const { tasks, uploadFile, formatSize, formatSpeed } = useChunkedUpload();
 const showDialog = ref(false);
+const doneSet = ref(new Set());
 
-const taskList = ref([]);
+const taskList = computed(() => {
+  return Object.values(tasks).sort((a, b) => b.id.localeCompare(a.id));
+});
 
 function handleBeforeUpload(file) {
-  const task = reactive({
-    id: `${Date.now()}-${file.name}`,
-    filename: file.name,
-    totalSize: file.size,
-    progress: 0,
-    speed: 0,
-    status: 'preparing',
-    error: null
-  });
-  taskList.value.unshift(task);
-
   uploadFile(file, '', props.root).then(result => {
-    task.progress = result.progress;
-    task.speed = result.speed;
-    task.status = result.status;
-    task.error = result.error;
     if (result.status === 'done') {
+      doneSet.value = new Set([...doneSet.value, result.id]);
       emit('uploaded');
     }
-  }).catch(err => {
-    task.status = 'failed';
-    task.error = err.message || '上传失败';
   });
-
   return false;
 }
 

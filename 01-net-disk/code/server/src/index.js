@@ -8,12 +8,14 @@ import { exec } from 'node:child_process';
 async function start() {
   const config = loadConfig();
 
+  // 动态导入 fs / path（兼容 CJS 打包）
+  const { existsSync, rmSync, writeFileSync, mkdirSync, unlinkSync } = await import('node:fs');
+  const { resolve, join } = await import('node:path');
+
   // 初始化数据库
   await initDb();
 
   // 启动时清理残留的临时分片
-  const { existsSync, rmSync } = await import('node:fs');
-  const { resolve } = await import('node:path');
   const chunksDir = resolve(config.storage.tempDir, 'chunks');
   if (existsSync(chunksDir)) {
     rmSync(chunksDir, { recursive: true, force: true });
@@ -31,6 +33,12 @@ async function start() {
     }
     throw err;
   }
+
+  // 写入 PID 文件，供 stop.bat 使用
+  const dataDir = join(process.cwd(), 'data');
+  if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
+  const pidPath = join(dataDir, 'server.pid');
+  writeFileSync(pidPath, String(process.pid));
 
   const ip = getLanIP();
   const url = `http://${ip}:${config.server.port}`;
@@ -57,11 +65,11 @@ async function start() {
     const platform = process.platform;
     let cmd;
     if (platform === 'win32') {
-      cmd = `start ${localUrl}`;
+      cmd = `start ${localUrl}/#/admin`;
     } else if (platform === 'darwin') {
-      cmd = `open ${localUrl}`;
+      cmd = `open ${localUrl}/#/admin`;
     } else {
-      cmd = `xdg-open ${localUrl}`;
+      cmd = `xdg-open ${localUrl}/#/admin`;
     }
     exec(cmd);
   }
@@ -71,6 +79,7 @@ async function start() {
     console.log('\n正在关闭服务...');
     app.close().then(() => {
       closeDb();
+      try { if (existsSync(pidPath)) unlinkSync(pidPath); } catch {}
       process.exit(0);
     });
   };

@@ -58,9 +58,75 @@ if (existsSync(webDist)) {
   writeFileSync(resolve(releaseDir, 'web/index.html'), '<!DOCTYPE html><html><body>请先构建前端: cd web && npm run build</body></html>');
 }
 
-// 4. 启动脚本和说明
-console.log('[4/4] 创建启动脚本...');
-writeFileSync(resolve(releaseDir, 'start.bat'), '@echo off\r\ntitle my-net-disk\r\nnode server.js\r\npause\r\n');
+// 4. 启动/停止脚本和说明
+console.log('[4/4] 创建启动/停止脚本...');
+
+const port = 3000;
+const adminUrl = `http://127.0.0.1:${port}/#/admin`;
+
+const startBat = `@echo off
+title my-net-disk
+setlocal enabledelayedexpansion
+
+set ADMIN_URL=${adminUrl}
+set PID_FILE=%~dp0data\\server.pid
+
+if not exist "%PID_FILE%" goto :launch
+
+set /p SAVED_PID=<"%PID_FILE%"
+tasklist /FI "PID eq !SAVED_PID!" 2>nul | find "!SAVED_PID!" >nul
+if errorlevel 1 (
+    echo [my-net-disk] Stale PID file found, restarting...
+    del "%PID_FILE%" 2>nul
+    goto :launch
+)
+
+echo [my-net-disk] Already running (PID: !SAVED_PID!)
+start "" "%ADMIN_URL%"
+timeout /t 2 >nul
+exit
+
+:launch
+where node >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Node.js not found. Install from https://nodejs.org
+    timeout /t 3 >nul
+    exit
+)
+
+powershell -Command "Start-Process -WindowStyle Hidden -FilePath 'node' -ArgumentList 'server.js' -WorkingDirectory '%~dp0'"
+echo [my-net-disk] Starting...
+timeout /t 2 >nul
+
+start "" "%ADMIN_URL%"
+echo [my-net-disk] Started. To stop, double-click stop.bat
+timeout /t 2 >nul
+`;
+
+const stopBat = `@echo off
+title my-net-disk - stop
+
+echo [my-net-disk] Looking for service on port 3000...
+
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr /C:":3000 " ^| findstr "LISTENING"') do (
+    echo [my-net-disk] Stopping PID %%a ...
+    taskkill /PID %%a /F
+    goto :done
+)
+
+echo [my-net-disk] No running service found
+goto :cleanup
+
+:done
+echo [my-net-disk] Stopped
+
+:cleanup
+del "%~dp0data\\server.pid" 2>nul
+timeout /t 2 >nul
+`;
+
+writeFileSync(resolve(releaseDir, 'start.bat'), startBat);
+writeFileSync(resolve(releaseDir, 'stop.bat'), stopBat);
 
 // README
 const readme = `# my-net-disk · 局域网文件管理服务
@@ -71,12 +137,13 @@ const readme = `# my-net-disk · 局域网文件管理服务
 2. 双击 **start.bat** 启动服务
 3. 浏览器自动打开管理端页面
 4. 右下角二维码，手机扫码即可访问客户端
+5. 双击 **stop.bat** 关闭服务
 
 ## 管理端
 
-- 仪表盘：http://127.0.0.1:3000/#/admin
-- 文件管理：http://127.0.0.1:3000/#/admin/files
-- 系统配置：http://127.0.0.1:3000/#/admin/settings
+- 仪表盘：${adminUrl}
+- 文件管理：http://127.0.0.1:${port}/#/admin/files
+- 系统配置：http://127.0.0.1:${port}/#/admin/settings
 
 ## 文件夹说明
 
@@ -88,7 +155,7 @@ const readme = `# my-net-disk · 局域网文件管理服务
 
 - 管理端仅限本机访问（安全设计）
 - 客户端可在局域网任意设备访问
-- 关闭命令行窗口即停止服务
+- 关闭服务请运行 stop.bat，直接关窗口可能端口未释放
 `;
 writeFileSync(resolve(releaseDir, 'README.md'), readme);
 
@@ -101,4 +168,5 @@ console.log('   ├── config/         (配置文件)');
 console.log('   ├── web/            (前端)');
 console.log('   ├── data/           (数据库，运行后生成)');
 console.log('   ├── start.bat       (双击启动)');
+console.log('   ├── stop.bat        (双击停止)');
 console.log('   └── README.md       (使用说明)');

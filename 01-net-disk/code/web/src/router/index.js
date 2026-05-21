@@ -1,8 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 const routes = [
-  // 默认跳转管理端
-  { path: '/', redirect: '/admin' },
   // 管理端
   {
     path: '/admin',
@@ -21,7 +19,7 @@ const routes = [
   },
   // 客户端
   {
-    path: '/browse',
+    path: '/',
     component: () => import('../pages/client/FileBrowser.vue'),
     meta: { client: true }
   }
