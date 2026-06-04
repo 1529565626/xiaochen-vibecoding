@@ -1,0 +1,31 @@
+# 环境变量（含敏感信息）
+.env
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# 数据库文件
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# 临时文件
+nssm/
+install-service.bat
+install-task.ps1
+no-window.ps1
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
