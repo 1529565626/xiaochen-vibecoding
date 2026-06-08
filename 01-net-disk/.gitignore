@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+.DS_Store
+Thumbs.db
+dist/
+.cache/
+.claude/
+需求初稿.txt
