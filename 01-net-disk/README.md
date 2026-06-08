@@ -4,6 +4,16 @@
 
 ---
 
+局域网网盘小应用，能快速进行移动端设备、电脑端设备文件上传下载管理。理论上能够拉满路由器的上传下载速度（受硬盘写入速度和路由器的荷载速度限制）。电脑端运行，移动端扫码（浏览器自带）打开访问，进行文件管理。
+
+![5d3c25bbd3a04ee13cd09435b7148bab](A:\claude-develop\Project-develop\github-vibecoding\01-net-disk\README\5d3c25bbd3a04ee13cd09435b7148bab.jpg)
+
+![image-20260521162256325](A:\claude-develop\Project-develop\github-vibecoding\01-net-disk\README\image-20260521162256325.png)
+
+
+
+
+
 ## 使用前准备
 
 电脑需要安装 **Node.js**（运行环境，装一次即可）。
